@@ -2,13 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Application Portal</title>
+    <title>Application Portal (Alpine.js)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body
+    class="bg-gray-100 flex items-center justify-center h-screen"
+    x-data="portalPage()"
+    x-init="initialize()"
+>
     <div class="text-center bg-white p-12 rounded-lg shadow-lg">
-        <h1 id="welcome-message" class="text-4xl font-bold mb-2">Welcome!</h1>
-        <p id="iteration-display" class="text-blue-600 font-semibold mb-8">Loading active iteration...</p>
+        <h1 class="text-4xl font-bold mb-2" x-text="welcomeMessage"></h1>
+        <p 
+            class="font-semibold mb-8"
+            :class="{ 'text-red-600': iterationError, 'text-blue-600': !iterationError }"
+            x-text="iterationDisplay"
+        ></p>
         <p class="text-gray-600 mb-8">Please select an application to continue.</p>
         <div class="space-y-4">
             <a href="/login.html" class="block w-full bg-blue-500 text-white font-bold py-4 px-8 rounded-lg hover:bg-blue-600 transition-colors duration-200">
@@ -22,35 +31,41 @@
             Logout
         </a>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Display welcome message
-            const userName = sessionStorage.getItem('loggedInUser');
-            if (userName) {
-                document.getElementById('welcome-message').textContent = `Welcome, ${userName}!`;
-            } else {
-                window.location.href = '/index.html';
-                return; 
-            }
 
-            // Fetch and display active iteration
-            const iterationDisplay = document.getElementById('iteration-display');
-            try {
-                const response = await fetch('/api/active-iteration');
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message);
+    <script>
+        function portalPage() {
+            return {
+                // State properties
+                welcomeMessage: 'Welcome!',
+                iterationDisplay: 'Loading active iteration...',
+                iterationError: false,
+
+                // Initialization logic
+                async initialize() {
+                    const userName = sessionStorage.getItem('loggedInUser');
+                    if (userName) {
+                        this.welcomeMessage = `Welcome, ${userName}!`;
+                    } else {
+                        // If no user is logged in, redirect to the main page
+                        window.location.href = '/index.html';
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/active-iteration');
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message);
+                        }
+                        const activeIteration = await response.json();
+                        this.iterationDisplay = `Current Active Iteration: ${activeIteration.name} (ID: ${activeIteration.id})`;
+                    } catch (error) {
+                        this.iterationDisplay = `Error: ${error.message}`;
+                        this.iterationError = true;
+                    }
                 }
-                const activeIteration = await response.json();
-                iterationDisplay.textContent = `Current Active Iteration: ${activeIteration.name} (ID: ${activeIteration.id})`;
-            } catch (error) {
-                iterationDisplay.textContent = `Error: ${error.message}`;
-                iterationDisplay.classList.remove('text-blue-600');
-                iterationDisplay.classList.add('text-red-600');
             }
-        });
+        }
     </script>
 </body>
 </html>
-
-
