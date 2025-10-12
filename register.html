@@ -2,18 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Person Registration</title>
+    <title>Person Registration (Alpine.js)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg">
+    <div 
+        class="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg"
+        x-data="registrationForm()"
+    >
         <h1 class="text-3xl font-bold mb-2 text-center">Register New Person</h1>
         <p class="text-gray-600 mb-6 text-center">Enter your full name to create an account.</p>
         
-        <form id="register-form">
+        <form @submit.prevent="handleRegister()">
             <div class="mb-4">
                 <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
-                <input type="text" id="name" name="name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                <input type="text" id="name" name="name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required x-model="name">
             </div>
             <div class="flex items-center justify-between">
                 <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
@@ -24,53 +28,54 @@
                 </a>
             </div>
         </form>
-        <p id="message" class="text-center text-sm italic mt-4"></p>
+        <p x-show="message" x-text="message" class="text-center text-sm italic mt-4" :class="isError ? 'text-red-500' : 'text-green-500'"></p>
     </div>
 
     <script>
-        document.getElementById('register-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const name = document.getElementById('name').value.trim();
-            const message = document.getElementById('message');
-            message.textContent = '';
-            message.className = 'text-center text-sm italic mt-4';
+        function registrationForm() {
+            return {
+                name: '',
+                message: '',
+                isError: false,
 
-            if (!name) {
-                message.textContent = 'Please enter a name.';
-                message.classList.add('text-red-500');
-                return;
-            }
+                async handleRegister() {
+                    this.message = '';
+                    this.isError = false;
 
-            if (name.toLowerCase() === 'admin') {
-                message.textContent = 'This name is reserved and cannot be used.';
-                message.classList.add('text-red-500');
-                return;
-            }
+                    if (!this.name.trim()) {
+                        this.message = 'Please enter a name.';
+                        this.isError = true;
+                        return;
+                    }
 
-            try {
-                const response = await fetch('/api/people', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
-                });
+                    if (this.name.toLowerCase() === 'admin') {
+                        this.message = 'This name is reserved and cannot be used.';
+                        this.isError = true;
+                        return;
+                    }
 
-                const data = await response.json();
+                    try {
+                        const response = await fetch('/api/people', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: this.name })
+                        });
 
-                if (!response.ok) {
-                    throw new Error(data.message || 'Registration failed.');
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Registration failed.');
+                        }
+                        
+                        this.message = `User "${this.name}" successfully created! You can now log in.`;
+                        this.name = ''; // Clear input on success
+
+                    } catch (error) {
+                        this.message = error.message;
+                        this.isError = true;
+                    }
                 }
-                
-                message.textContent = `User "${name}" successfully created! You can now log in.`;
-                message.classList.add('text-green-500');
-                document.getElementById('register-form').reset();
-
-            } catch (error) {
-                message.textContent = error.message;
-                message.classList.add('text-red-500');
             }
-        });
+        }
     </script>
 </body>
 </html>
-
-
